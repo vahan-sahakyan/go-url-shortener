@@ -1,91 +1,87 @@
 package main
 
 import (
-	"fmt"
-	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
-	"log/slog"
-	"net/http"
-	"os"
-	"url-shortener/internal/config"
-	"url-shortener/internal/http-server/handlers/url/save"
-	mwLogger "url-shortener/internal/http-server/middleware/logger"
-	"url-shortener/internal/lib/logger/handlers/slogpretty"
-	"url-shortener/internal/lib/logger/sl"
-	"url-shortener/internal/storage/sqlite"
+  "github.com/go-chi/chi"
+  "github.com/go-chi/chi/middleware"
+  "log/slog"
+  "net/http"
+  "os"
+  "url-shortener/internal/config"
+  "url-shortener/internal/http-server/handlers/url/save"
+  mwLogger "url-shortener/internal/http-server/middleware/logger"
+  "url-shortener/internal/lib/logger/handlers/slogpretty"
+  "url-shortener/internal/lib/logger/sl"
+  "url-shortener/internal/storage/sqlite"
 )
 
 const (
-	envLocal = "local"
-	envDev   = "dev"
-	envProd  = "prod"
+  envLocal = "local"
+  envDev   = "dev"
+  envProd  = "prod"
 )
 
 func main() {
-	cfg := config.MustLoad()
+  cfg := config.MustLoad()
 
-	fmt.Println(cfg)
-	log := setupLogger(cfg.Env)
+  log := setupLogger(cfg.Env)
 
-	log.Info("starting url-shortener", slog.String("env", cfg.Env), slog.String("version", "v0.1.3"))
-	log.Debug("debug messages are enabled")
+  log.Info("starting url-shortener", slog.String("env", cfg.Env), slog.String("version", "v0.1.3"))
+  log.Debug("debug messages are enabled")
 
-	storage, err := sqlite.New(cfg.StoragePath)
-	_ = storage
-	if err != nil {
-		log.Error("failed to init storage", sl.Err(err))
-		os.Exit(1)
-	}
-	router := chi.NewRouter()
+  storage, err := sqlite.New(cfg.StoragePath)
 
-	router.Use(middleware.RequestID)
-	router.Use(middleware.Logger)
-	router.Use(mwLogger.New(log))
-	router.Use(middleware.Recoverer)
-	router.Use(middleware.URLFormat)
+  if err != nil {
+    log.Error("failed to init storage", sl.Err(err))
+    os.Exit(1)
+  }
+  router := chi.NewRouter()
 
-	router.Post("/url", save.New(log, storage))
+  router.Use(middleware.RequestID)
+  router.Use(middleware.Logger)
+  router.Use(mwLogger.New(log))
+  router.Use(middleware.Recoverer)
+  router.Use(middleware.URLFormat)
 
-	log.Info("starting server", slog.String("address", cfg.Address))
+  router.Post("/url", save.New(log, storage))
 
-	// TODO: run server
+  log.Info("starting server", slog.String("address", cfg.Address))
 
-	srv := &http.Server{
-		Addr:         cfg.Address,
-		Handler:      router,
-		ReadTimeout:  cfg.HTTPServer.Timeout,
-		WriteTimeout: cfg.HTTPServer.Timeout,
-		IdleTimeout:  cfg.HTTPServer.IdleTimeout,
-	}
+  srv := &http.Server{
+    Addr:         cfg.Address,
+    Handler:      router,
+    ReadTimeout:  cfg.HTTPServer.Timeout,
+    WriteTimeout: cfg.HTTPServer.Timeout,
+    IdleTimeout:  cfg.HTTPServer.IdleTimeout,
+  }
 
-	if err := srv.ListenAndServe(); err != nil {
-		log.Error("failed to start server")
-	}
+  if err := srv.ListenAndServe(); err != nil {
+    log.Error("failed to start server")
+  }
 
-	log.Error("server stopped")
+  log.Error("server stopped")
 }
 
 func setupLogger(env string) *slog.Logger {
-	var log *slog.Logger
-	switch env {
-	case envLocal:
-		log = setupPrettySlog()
-	case envDev:
-		log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-	case envProd:
-		log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
-	}
-	return log
+  var log *slog.Logger
+  switch env {
+  case envLocal:
+    log = setupPrettySlog()
+  case envDev:
+    log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+  case envProd:
+    log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+  }
+  return log
 }
 
 func setupPrettySlog() *slog.Logger {
-	opts := slogpretty.PrettyHandlerOptions{
-		SlogOpts: &slog.HandlerOptions{
-			Level: slog.LevelDebug,
-		},
-	}
+  opts := slogpretty.PrettyHandlerOptions{
+    SlogOpts: &slog.HandlerOptions{
+      Level: slog.LevelDebug,
+    },
+  }
 
-	handler := opts.NewPrettyHandler(os.Stdout)
+  handler := opts.NewPrettyHandler(os.Stdout)
 
-	return slog.New(handler)
+  return slog.New(handler)
 }
