@@ -12,7 +12,7 @@ import (
 
 type Response struct {
   resp.Response
-  URLs []string `json:"urls,omitempty"`
+  URLs []map[string]string `json:"urls,omitempty"`
 }
 
 func New(log *slog.Logger, storage *sqlite.Storage) http.HandlerFunc {
@@ -33,7 +33,7 @@ func New(log *slog.Logger, storage *sqlite.Storage) http.HandlerFunc {
   }
 }
 
-func responseOK(w http.ResponseWriter, r *http.Request, urls []string) {
+func responseOK(w http.ResponseWriter, r *http.Request, urls []map[string]string) {
   render.JSON(w, r, Response{
     Response: resp.OK(),
     URLs:     urls,

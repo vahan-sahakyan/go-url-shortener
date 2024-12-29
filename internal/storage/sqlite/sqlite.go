@@ -101,10 +101,10 @@ func (s *Storage) DeleteURL(alias string) error {
   return nil
 }
 
-func (s *Storage) GetURLs() ([]string, error) {
+func (s *Storage) GetURLs() ([]map[string]string, error) {
   const op = "storage.sqlite.GetURLs"
 
-  stmt, err := s.db.Prepare(`SELECT url FROM url`)
+  stmt, err := s.db.Prepare(`SELECT alias, url FROM url`)
   if err != nil {
     return nil, fmt.Errorf("%s: prepare statement %w", op, err)
   }
@@ -120,13 +120,19 @@ func (s *Storage) GetURLs() ([]string, error) {
     }
   }(rows)
 
-  var urls []string
+  var urls []map[string]string
   for rows.Next() {
+    var alias string
     var url string
-    if err := rows.Scan(&url); err != nil {
+    if err := rows.Scan(&alias, &url); err != nil {
       return nil, fmt.Errorf("%s: scan row: %w", op, err)
     }
-    urls = append(urls, url)
+    fmt.Println(alias, url)
+    urls = append(urls, map[string]string{
+      "alias":    alias,
+      "url":      url,
+      "redirect": "http://localhost:8082/url/" + alias,
+    })
   }
   return urls, nil
 }
