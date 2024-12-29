@@ -51,7 +51,7 @@ func (s *Storage) SaveURL(urlToSave string, alias string) (int64, error) {
   res, err := stmt.Exec(urlToSave, alias)
   if err != nil {
     // TODO: refactor this
-    if sqliteErr, ok := err.(sqlite3.Error); ok && sqliteErr.ExtendedCode == sqlite3.ErrConstraintUnique {
+    if sqliteErr, ok := err.(sqlite3.Error); ok && errors.Is(sqliteErr.ExtendedCode, sqlite3.ErrConstraintUnique) {
       return 0, fmt.Errorf("%s: %w", op, storage.ErrURLExists)
     }
     return 0, fmt.Errorf("%s: %w", op, err)
@@ -99,4 +99,34 @@ func (s *Storage) DeleteURL(alias string) error {
   }
 
   return nil
+}
+
+func (s *Storage) GetURLs() ([]string, error) {
+  const op = "storage.sqlite.GetURLs"
+
+  stmt, err := s.db.Prepare(`SELECT url FROM url`)
+  if err != nil {
+    return nil, fmt.Errorf("%s: prepare statement %w", op, err)
+  }
+
+  rows, err := stmt.Query()
+  if err != nil {
+    return nil, fmt.Errorf("%s: execute statement: %w", op, err)
+  }
+  defer func(rows *sql.Rows) {
+    err := rows.Close()
+    if err != nil {
+      _ = fmt.Errorf("%s: close rows: %w", op, err)
+    }
+  }(rows)
+
+  var urls []string
+  for rows.Next() {
+    var url string
+    if err := rows.Scan(&url); err != nil {
+      return nil, fmt.Errorf("%s: scan row: %w", op, err)
+    }
+    urls = append(urls, url)
+  }
+  return urls, nil
 }

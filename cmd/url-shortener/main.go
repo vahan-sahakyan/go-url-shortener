@@ -7,7 +7,10 @@ import (
   "net/http"
   "os"
   "url-shortener/internal/config"
-  "url-shortener/internal/http-server/handlers/url/save"
+  deleteUrlHandler "url-shortener/internal/http-server/handlers/url/delete"
+  getUrlHandler "url-shortener/internal/http-server/handlers/url/get"
+  getAllUrlHandler "url-shortener/internal/http-server/handlers/url/getAll"
+  saveUrlHandler "url-shortener/internal/http-server/handlers/url/save"
   mwLogger "url-shortener/internal/http-server/middleware/logger"
   "url-shortener/internal/lib/logger/handlers/slogpretty"
   "url-shortener/internal/lib/logger/sl"
@@ -42,7 +45,10 @@ func main() {
   router.Use(middleware.Recoverer)
   router.Use(middleware.URLFormat)
 
-  router.Post("/url", save.New(log, storage))
+  router.Post("/url", saveUrlHandler.New(log, storage))
+  router.Delete("/url/{alias}", deleteUrlHandler.New(log, storage))
+  router.Get("/url/{alias}", getUrlHandler.New(log, storage))
+  router.Get("/url", getAllUrlHandler.New(log, storage))
 
   log.Info("starting server", slog.String("address", cfg.Address))
 
