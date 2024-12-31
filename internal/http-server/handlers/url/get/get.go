@@ -13,7 +13,9 @@ import (
 
 type Response struct {
   resp.Response
-  URL string `json:"url,omitempty"`
+  Alias    string `json:"alias,omitempty"`
+  URL      string `json:"url,omitempty"`
+  Redirect string `json:"redirect,omitempty"`
 }
 
 func New(log *slog.Logger, storage *sqlite.Storage) http.HandlerFunc {
@@ -32,13 +34,15 @@ func New(log *slog.Logger, storage *sqlite.Storage) http.HandlerFunc {
       render.JSON(w, r, resp.Error("failed to get url"))
       return
     }
-    responseOK(w, r, url)
+    responseOK(w, r, url, alias)
   }
 }
 
-func responseOK(w http.ResponseWriter, r *http.Request, url string) {
+func responseOK(w http.ResponseWriter, r *http.Request, url string, alias string) {
   render.JSON(w, r, Response{
     Response: resp.OK(),
     URL:      url,
+    Redirect: "http://localhost:8082/" + alias,
+    Alias:    alias,
   })
 }
