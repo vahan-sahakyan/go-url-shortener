@@ -45,7 +45,7 @@ func TestSaveHandler(t *testing.T) {
 			name:      "Invalid URL",
 			url:       "some invalid URL",
 			alias:     "some_alias",
-			respError: "field URL is not a URL",
+			respError: "field URL is not a valid URL",
 		},
 		{
 			name:      "SaveURL Error",
